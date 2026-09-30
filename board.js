@@ -1,13 +1,18 @@
 import { KEYS } from "./constants.js";
 import { randFromArray, randInt } from "./helpers.js";
 
-const WALL = 1;
 const EMPTY = 0;
+const WALL = 1;
+const PLAYER = 2;
+
+const PLAYER_CHAR = "x";
 
 export class Board {
   rawBoard = [];
   width;
   height;
+  playerX;
+  playerY;
 
   constructor({ height, width }) {
     this.height = height;
@@ -280,6 +285,11 @@ export class Board {
       process.stdout.write("\n");
 
       for (let j = 0; j <= this.getLastIndex("horizontal"); j++) {
+        if ((i % 2 === 1 || j % 2 === 1) && this.rawBoard[i][j] === PLAYER) {
+          process.stdout.write(PLAYER_CHAR);
+          continue;
+        }
+
         if (i % 2 === 1 && j % 2 === 1) {
           process.stdout.write(KEYS.EMPTY_SPACE);
           continue;
@@ -288,5 +298,94 @@ export class Board {
         process.stdout.write(this.getCharFromIndex(i, j));
       }
     }
+  }
+
+  getRawPosFromPlayerPos({ y, x }) {
+    return {
+      i: y * 2 + 1,
+      j: x * 2 + 1,
+    };
+  }
+
+  setPlayer() {
+    const { i, j } = this.getRawPosFromPlayerPos({
+      y: this.playerY,
+      x: this.playerX,
+    });
+
+    for (let i = 1; i <= this.getLastIndex("vertical"); i += 2) {
+      for (let j = 1; j <= this.getLastIndex("horizontal"); j += 2) {
+        this.rawBoard[i][j] = EMPTY;
+      }
+    }
+
+    this.rawBoard[i][j] = PLAYER;
+  }
+
+  initPlayerPosition() {
+    this.playerY = randInt(0, this.height - 1);
+    this.playerX = randInt(0, this.width - 1);
+
+    this.setPlayer();
+  }
+
+  moveUp() {
+    const { i, j } = this.getRawPosFromPlayerPos({
+      x: this.playerX,
+      y: this.playerY,
+    });
+
+    if (this.rawBoard[i - 1][j] === WALL) {
+      return;
+    }
+
+    this.playerY -= 1;
+    this.setPlayer();
+    this.draw();
+  }
+
+  moveDown() {
+    const { i, j } = this.getRawPosFromPlayerPos({
+      x: this.playerX,
+      y: this.playerY,
+    });
+
+    if (this.rawBoard[i + 1][j] === WALL) {
+      return;
+    }
+
+    this.playerY += 1;
+    this.setPlayer();
+    this.draw();
+  }
+
+  moveRight() {
+    const { i, j } = this.getRawPosFromPlayerPos({
+      x: this.playerX,
+      y: this.playerY,
+    });
+
+    if (this.rawBoard[i][j + 1] === WALL) {
+      return;
+    }
+
+    this.playerX += 1;
+    this.setPlayer();
+    this.draw();
+  }
+
+  moveLeft() {
+    const { i, j } = this.getRawPosFromPlayerPos({
+      x: this.playerX,
+      y: this.playerY,
+    });
+
+    if (this.rawBoard[i][j - 1] === WALL) {
+      return;
+    }
+
+    this.playerX -= 1;
+    this.setPlayer();
+    this.draw();
   }
 }

@@ -9,12 +9,31 @@ const height = 10;
 const width = 22;
 
 const maze = new Board({ height, width });
+maze.initRandomMaze();
+maze.initPlayerPosition();
 maze.draw();
 
 process.stdin.on("data", (key) => {
   if (key === KEYS.EMPTY_SPACE) {
     maze.initRandomMaze();
+    maze.initPlayerPosition();
     maze.draw();
+  }
+
+  if (key === KEYS.UP) {
+    maze.moveUp();
+  }
+
+  if (key === KEYS.DOWN) {
+    maze.moveDown();
+  }
+
+  if (key === KEYS.RIGHT) {
+    maze.moveRight();
+  }
+
+  if (key === KEYS.LEFT) {
+    maze.moveLeft();
   }
 
   if (key === "\u0003") {
