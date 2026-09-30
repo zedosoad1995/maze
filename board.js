@@ -1,10 +1,11 @@
 import { KEYS } from "./constants.js";
+import { randFromArray, randInt } from "./helpers.js";
 
 const WALL = 1;
 const EMPTY = 0;
 
 export class Board {
-  board = [];
+  rawBoard = [];
   width;
   height;
 
@@ -12,11 +13,11 @@ export class Board {
     this.height = height;
     this.width = width;
 
-    this.initEmpty();
+    this.initRandomMaze();
   }
 
   initEmpty() {
-    this.board = [];
+    this.rawBoard = [];
 
     for (let i = 0; i <= this.getLastIndex("vertical"); i++) {
       const row = [];
@@ -24,12 +25,188 @@ export class Board {
       const isTopOrBottom = i === 0 || i === this.getLastIndex("vertical");
 
       row.push(WALL);
-      for (let i = 1; i <= this.getLastIndex("horizontal") - 1; i++) {
-        row.push(isTopOrBottom ? WALL : Math.random() > 0.5 ? WALL : EMPTY);
+      for (let j = 1; j <= this.getLastIndex("horizontal") - 1; j++) {
+        row.push(isTopOrBottom ? WALL : EMPTY);
       }
       row.push(WALL);
 
-      this.board.push(row);
+      this.rawBoard.push(row);
+    }
+  }
+
+  initRandom() {
+    this.rawBoard = [];
+
+    for (let i = 0; i <= this.getLastIndex("vertical"); i++) {
+      const row = [];
+
+      const isTopOrBottom = i === 0 || i === this.getLastIndex("vertical");
+
+      row.push(WALL);
+      for (let j = 1; j <= this.getLastIndex("horizontal") - 1; j++) {
+        if (isTopOrBottom) {
+          row.push(WALL);
+          continue;
+        }
+
+        if (i % 2 === 0 && j % 2 === 0) {
+          row.push(WALL);
+        } else if (i % 2 === 0 || j % 2 === 0) {
+          row.push(Math.random() > 0.5 ? WALL : EMPTY);
+        } else {
+          row.push(EMPTY);
+        }
+      }
+      row.push(WALL);
+
+      this.rawBoard.push(row);
+    }
+  }
+
+  initFull() {
+    this.rawBoard = [];
+
+    for (let i = 0; i <= this.getLastIndex("vertical"); i++) {
+      const row = [];
+
+      const isTopOrBottom = i === 0 || i === this.getLastIndex("vertical");
+
+      row.push(WALL);
+      for (let j = 1; j <= this.getLastIndex("horizontal") - 1; j++) {
+        if (isTopOrBottom) {
+          row.push(WALL);
+          continue;
+        }
+
+        if (i % 2 === 0 || j % 2 === 0) {
+          row.push(WALL);
+        } else {
+          row.push(EMPTY);
+        }
+      }
+      row.push(WALL);
+
+      this.rawBoard.push(row);
+    }
+  }
+
+  initRandomMaze() {
+    const createWalkableBoard = () => {
+      const walkableBoard = [];
+
+      for (let i = 1; i <= this.getLastIndex("vertical"); i += 2) {
+        const row = [];
+
+        for (let j = 1; j <= this.getLastIndex("horizontal"); j += 2) {
+          row.push({ visited: false, y: (i - 1) / 2, x: (j - 1) / 2 });
+        }
+
+        walkableBoard.push(row);
+      }
+
+      return walkableBoard;
+    };
+
+    const getValidNeighbours = (walkableBoard, y, x) => {
+      const topY = y - 1;
+      const bottomY = y + 1;
+
+      const rightX = x + 1;
+      const leftX = x - 1;
+
+      const validNeighbours = [];
+
+      if (topY >= 0 && !walkableBoard[topY][x].visited)
+        validNeighbours.push(walkableBoard[topY][x]);
+
+      if (bottomY < this.height && !walkableBoard[bottomY][x].visited)
+        validNeighbours.push(walkableBoard[bottomY][x]);
+
+      if (rightX < this.width && !walkableBoard[y][rightX].visited)
+        validNeighbours.push(walkableBoard[y][rightX]);
+
+      if (leftX >= 0 && !walkableBoard[y][leftX].visited)
+        validNeighbours.push(walkableBoard[y][leftX]);
+
+      return validNeighbours;
+    };
+
+    const removeWallBetweenCells = (currCell, nextCell) => {
+      let isUp = Number(nextCell.y - currCell.y === -1);
+      let isDown = Number(nextCell.y - currCell.y === 1);
+      let isRight = Number(nextCell.x - currCell.x === 1);
+      let isLeft = Number(nextCell.x - currCell.x === -1);
+
+      if (
+        isUp + isDown + isLeft + isRight > 1 ||
+        isUp + isDown + isLeft + isRight < 1
+      ) {
+        throw `Something went wrong in removeWallBetweenCell currCell (${JSON.stringify(currCell)}), nextCell (${JSON.stringify(nextCell)})`;
+      }
+
+      if (isUp) {
+        this.rawBoard[currCell.y * 2][currCell.x * 2 + 1] = EMPTY;
+        return;
+      }
+
+      if (isDown) {
+        this.rawBoard[currCell.y * 2 + 2][currCell.x * 2 + 1] = EMPTY;
+        return;
+      }
+
+      if (isRight) {
+        this.rawBoard[currCell.y * 2 + 1][currCell.x * 2 + 2] = EMPTY;
+        return;
+      }
+
+      this.rawBoard[currCell.y * 2 + 1][currCell.x * 2] = EMPTY;
+    };
+
+    this.initFull();
+
+    const activeCells = [];
+    const walkableBoard = createWalkableBoard();
+
+    const randY = randInt(0, this.height - 1);
+    const randX = randInt(0, this.width - 1);
+
+    const initCell = walkableBoard[randY][randX];
+    initCell.visited = true;
+    activeCells.push(initCell);
+
+    while (activeCells.length > 0) {
+      const rand = Math.random();
+
+      let currCell;
+      let currCellIdx;
+
+      if (rand < 0.6) {
+        currCellIdx = -1;
+      } else if (rand < 0.85) {
+        currCellIdx = randInt(0, activeCells.length - 1);
+      } else {
+        currCellIdx = 0;
+      }
+
+      currCell = activeCells.at(currCellIdx);
+
+      const validNeighbours = getValidNeighbours(
+        walkableBoard,
+        currCell.y,
+        currCell.x,
+      );
+
+      if (!validNeighbours.length) {
+        activeCells.splice(currCellIdx, 1);
+        continue;
+      }
+
+      const nextCell = randFromArray(validNeighbours);
+
+      removeWallBetweenCells(currCell, nextCell);
+
+      nextCell.visited = true;
+      activeCells.push(nextCell);
     }
   }
 
@@ -46,7 +223,7 @@ export class Board {
   }
 
   getCharFromIndex(i, j) {
-    if (this.board[i][j] === EMPTY) {
+    if (this.rawBoard[i][j] === EMPTY) {
       return KEYS.EMPTY_SPACE;
     }
 
@@ -57,21 +234,21 @@ export class Board {
     const bottomIdx = i + 1;
     const leftIdx = j - 1;
 
-    if (topIdx >= 0 && this.board[topIdx][j] === WALL) trbl[0] = 1;
+    if (topIdx >= 0 && this.rawBoard[topIdx][j] === WALL) trbl[0] = 1;
 
     if (
       rightIdx <= this.getLastIndex("horizontal") &&
-      this.board[i][rightIdx] === WALL
+      this.rawBoard[i][rightIdx] === WALL
     )
       trbl[1] = 1;
 
     if (
       bottomIdx <= this.getLastIndex("vertical") &&
-      this.board[bottomIdx][j] === WALL
+      this.rawBoard[bottomIdx][j] === WALL
     )
       trbl[2] = 1;
 
-    if (leftIdx >= 0 && this.board[i][leftIdx] === WALL) trbl[3] = 1;
+    if (leftIdx >= 0 && this.rawBoard[i][leftIdx] === WALL) trbl[3] = 1;
 
     const uchar = {
       "0000": KEYS.EMPTY_SPACE,
@@ -103,6 +280,11 @@ export class Board {
       process.stdout.write("\n");
 
       for (let j = 0; j <= this.getLastIndex("horizontal"); j++) {
+        if (i % 2 === 1 && j % 2 === 1) {
+          process.stdout.write(KEYS.EMPTY_SPACE);
+          continue;
+        }
+
         process.stdout.write(this.getCharFromIndex(i, j));
       }
     }

@@ -6,14 +6,14 @@ process.stdin.resume();
 process.stdin.setEncoding("utf8");
 
 const height = 10;
-const width = 10;
+const width = 22;
 
 const maze = new Board({ height, width });
 maze.draw();
 
 process.stdin.on("data", (key) => {
   if (key === KEYS.EMPTY_SPACE) {
-    maze.initEmpty();
+    maze.initRandomMaze();
     maze.draw();
   }
 
