@@ -1,0 +1,22 @@
+export const KEYS = Object.freeze({
+  UP: "\u001b[A",
+  DOWN: "\u001b[B",
+  RIGHT: "\u001b[C",
+  LEFT: "\u001b[D",
+
+  EMPTY_SPACE: " ",
+  H_WALL: "\u2500",
+  V_WALL: "\u2502",
+  TOP_LEFT_CORNER: "\u250C",
+  TOP_RIGHT_CORNER: "\u2510",
+  BOTTOM_LEFT_CORNER: "\u2514",
+  BOTTOM_RIGHT_CORNER: "\u2518",
+  TOP_RIGHT_BOTTOM_WALL: "\u251C",
+  TOP_LEFT_BOTTOM_WALL: "\u2524",
+  TOP_RIGHT_LEFT_WALL: "\u2534",
+  BOTTOM_RIGHT_LEFT_WALL: "\u252C",
+  CROSS_WALL: "\u253C",
+
+  CLEAR_TERMINAL: "\x1b[2J",
+  CURSOR_TO_TOP_LEFT: "\x1b[H",
+});
