@@ -3,5 +3,5 @@ export const randInt = (from, to) => {
 };
 
 export const randFromArray = (arr) => {
-  return arr[randInt(0, arr.length - 1)];
+  return arr.length ? arr[randInt(0, arr.length - 1)] : undefined;
 };

@@ -5,19 +5,16 @@ process.stdin.setRawMode(true);
 process.stdin.resume();
 process.stdin.setEncoding("utf8");
 
+const floors = 2;
 const height = 10;
 const width = 22;
 
-const maze = new Board({ height, width });
-maze.initRandomMaze();
-maze.initPlayerPosition();
-maze.draw();
+const maze = new Board({ floors, height, width });
+maze.loadMaze();
 
 process.stdin.on("data", (key) => {
   if (key === KEYS.EMPTY_SPACE) {
-    maze.initRandomMaze();
-    maze.initPlayerPosition();
-    maze.draw();
+    maze.loadMaze();
   }
 
   if (key === KEYS.UP) {
@@ -34,6 +31,14 @@ process.stdin.on("data", (key) => {
 
   if (key === KEYS.LEFT) {
     maze.moveLeft();
+  }
+
+  if (key === "u") {
+    maze.goUpperFloor();
+  }
+
+  if (key === "d") {
+    maze.goLowerFloor();
   }
 
   if (key === "\u0003") {
