@@ -3,5 +3,6 @@ export const randInt = (from, to) => {
 };
 
 export const randFromArray = (arr) => {
-  return arr.length ? arr[randInt(0, arr.length - 1)] : undefined;
+  const randIdx = randInt(0, arr.length - 1);
+  return arr.length ? { el: arr[randIdx], idx: randIdx } : {};
 };

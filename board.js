@@ -1,6 +1,9 @@
 import { KEYS } from "./constants.js";
 import { randFromArray, randInt } from "./helpers.js";
 
+const MAX_SAME_FLOOR_RETRIES = 10;
+const ODDS_TO_ADD_STAIRS = 0.03;
+
 const EMPTY = 0;
 const WALL = 1;
 const PLAYER = 2;
@@ -205,15 +208,27 @@ export class Board {
     initCell.visited = true;
     activeCells.push(initCell);
 
-    let n_same_plane_tries;
+    let numSameFloorTries;
+    let sameFloorCandidates = [];
     while (activeCells.length > 0) {
       const rand = Math.random();
 
       let currCell;
       let currCellIdx;
 
-      if (n_same_plane_tries > 0) {
-        currCellIdx = randInt(0, activeCells.length - 1);
+      const isRetryingFindingCellsInSameFloor = numSameFloorTries > 0;
+
+      if (isRetryingFindingCellsInSameFloor && sameFloorCandidates.length > 0) {
+        const { el, idx } = randFromArray(sameFloorCandidates);
+        sameFloorCandidates.splice(idx);
+
+        currCellIdx = activeCells.findIndex(
+          (cell) => el.x === cell.x && el.y === cell.y && el.z === cell.z,
+        );
+
+        if (currCellIdx === -1) {
+          throw `Unable to find active cell from sameFloorCandidates (${JSON.stringify(el)})`;
+        }
       } else if (rand < 0.6) {
         currCellIdx = -1;
       } else if (rand < 0.85) {
@@ -236,18 +251,30 @@ export class Board {
         continue;
       }
 
-      if (n_same_plane_tries < 10 && !validNeighbours.length) {
-        n_same_plane_tries += 1;
+      if (
+        numSameFloorTries < MAX_SAME_FLOOR_RETRIES &&
+        !validNeighbours.length &&
+        sameFloorCandidates.length > 0
+      ) {
+        numSameFloorTries += 1;
+
+        // On 1st retry
+        if (numSameFloorTries === 1) {
+          sameFloorCandidates = activeCells
+            .filter((_, idx) => idx !== currCellIdx)
+            .map((cell) => ({ ...cell }));
+        }
         continue;
       } else {
-        n_same_plane_tries = 0;
+        numSameFloorTries = 0;
+        sameFloorCandidates.length = 0;
       }
 
-      const nextCellXY = randFromArray(validNeighbours);
-      const nextCellZ = randFromArray(validNeighboursZ);
+      const { el: nextCellXY } = randFromArray(validNeighbours);
+      const { el: nextCellZ } = randFromArray(validNeighboursZ);
 
       const nextCell =
-        Math.random() < 0.01
+        Math.random() < ODDS_TO_ADD_STAIRS
           ? (nextCellZ ?? nextCellXY)
           : (nextCellXY ?? nextCellZ);
 
