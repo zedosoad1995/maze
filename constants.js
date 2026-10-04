@@ -20,3 +20,12 @@ export const KEYS = Object.freeze({
   CLEAR_TERMINAL: "\x1b[2J",
   CURSOR_TO_TOP_LEFT: "\x1b[H",
 });
+
+export const DIRECTIONS = Object.freeze({
+  NORTH: 0,
+  SOUTH: 1,
+  LEFT: 2,
+  RIGHT: 3,
+  UP: 4,
+  DOWN: 5,
+});

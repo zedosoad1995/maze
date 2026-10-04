@@ -1,8 +1,8 @@
-import { KEYS } from "./constants.js";
+import { DIRECTIONS, KEYS } from "./constants.js";
 import { randFromArray, randInt } from "./helpers.js";
 
-const MAX_SAME_FLOOR_RETRIES = 10;
-const ODDS_TO_ADD_STAIRS = 0.03;
+const MAX_SAME_FLOOR_RETRIES = 30;
+const ODDS_TO_ADD_STAIRS = 0.01;
 
 const EMPTY = 0;
 const WALL = 1;
@@ -220,7 +220,7 @@ export class Board {
 
       if (isRetryingFindingCellsInSameFloor && sameFloorCandidates.length > 0) {
         const { el, idx } = randFromArray(sameFloorCandidates);
-        sameFloorCandidates.splice(idx);
+        sameFloorCandidates.splice(idx, 1);
 
         currCellIdx = activeCells.findIndex(
           (cell) => el.x === cell.x && el.y === cell.y && el.z === cell.z,
@@ -254,7 +254,7 @@ export class Board {
       if (
         numSameFloorTries < MAX_SAME_FLOOR_RETRIES &&
         !validNeighbours.length &&
-        sameFloorCandidates.length > 0
+        (numSameFloorTries === 0 || sameFloorCandidates.length > 0)
       ) {
         numSameFloorTries += 1;
 
@@ -450,143 +450,52 @@ export class Board {
     });
   }
 
-  moveUp() {
-    const { k, i, j } = this.getRawPosFromXYZPos({
-      z: this.playerF,
-      x: this.playerX,
-      y: this.playerY,
-    });
+  canMove({ x, y, z, direction }) {
+    const { k, i, j } = this.getRawPosFromXYZPos({ z, x, y });
 
-    if (this.rawBoard[k][i - 1][j] === WALL) {
-      return;
-    }
-
-    this.playerY -= 1;
-    this.setRawPositionFromXYZ({
-      z: this.playerF,
-      y: this.playerY,
-      x: this.playerX,
-      value: PLAYER,
-    });
-    this.draw();
-
-    if (this.hasReachedGoal()) {
-      this.loadMaze();
+    if (direction === DIRECTIONS.NORTH) {
+      return this.rawBoard[k][i - 1][j] !== WALL;
+    } else if (direction === DIRECTIONS.SOUTH) {
+      return this.rawBoard[k][i + 1][j] !== WALL;
+    } else if (direction === DIRECTIONS.RIGHT) {
+      return this.rawBoard[k][i][j + 1] !== WALL;
+    } else if (direction === DIRECTIONS.LEFT) {
+      return this.rawBoard[k][i][j - 1] !== WALL;
+    } else if (direction === DIRECTIONS.UP) {
+      return (
+        k + 1 < this.rawBoard.length && this.rawBoard[k + 1][i][j] !== WALL
+      );
+    } else if (direction === DIRECTIONS.DOWN) {
+      return k - 1 >= 0 && this.rawBoard[k - 1][i][j] !== WALL;
     }
   }
 
-  moveDown() {
-    const { k, i, j } = this.getRawPosFromXYZPos({
-      z: this.playerF,
-      x: this.playerX,
-      y: this.playerY,
-    });
-
-    if (this.rawBoard[k][i + 1][j] === WALL) {
+  move(direction) {
+    if (
+      !this.canMove({
+        z: this.playerF,
+        x: this.playerX,
+        y: this.playerY,
+        direction,
+      })
+    ) {
       return;
     }
 
-    this.playerY += 1;
-    this.setRawPositionFromXYZ({
-      z: this.playerF,
-      y: this.playerY,
-      x: this.playerX,
-      value: PLAYER,
-    });
-    this.draw();
-
-    if (this.hasReachedGoal()) {
-      this.loadMaze();
-    }
-  }
-
-  moveRight() {
-    const { k, i, j } = this.getRawPosFromXYZPos({
-      z: this.playerF,
-      x: this.playerX,
-      y: this.playerY,
-    });
-
-    if (this.rawBoard[k][i][j + 1] === WALL) {
-      return;
+    if (direction === DIRECTIONS.NORTH) {
+      this.playerY -= 1;
+    } else if (direction === DIRECTIONS.SOUTH) {
+      this.playerY += 1;
+    } else if (direction === DIRECTIONS.RIGHT) {
+      this.playerX += 1;
+    } else if (direction === DIRECTIONS.LEFT) {
+      this.playerX -= 1;
+    } else if (direction === DIRECTIONS.UP) {
+      this.playerF += 1;
+    } else if (direction === DIRECTIONS.DOWN) {
+      this.playerF -= 1;
     }
 
-    this.playerX += 1;
-    this.setRawPositionFromXYZ({
-      z: this.playerF,
-      y: this.playerY,
-      x: this.playerX,
-      value: PLAYER,
-    });
-    this.draw();
-
-    if (this.hasReachedGoal()) {
-      this.loadMaze();
-    }
-  }
-
-  moveLeft() {
-    const { k, i, j } = this.getRawPosFromXYZPos({
-      z: this.playerF,
-      x: this.playerX,
-      y: this.playerY,
-    });
-
-    if (this.rawBoard[k][i][j - 1] === WALL) {
-      return;
-    }
-
-    this.playerX -= 1;
-    this.setRawPositionFromXYZ({
-      z: this.playerF,
-      y: this.playerY,
-      x: this.playerX,
-      value: PLAYER,
-    });
-    this.draw();
-
-    if (this.hasReachedGoal()) {
-      this.loadMaze();
-    }
-  }
-
-  goUpperFloor() {
-    const { k, i, j } = this.getRawPosFromXYZPos({
-      z: this.playerF,
-      x: this.playerX,
-      y: this.playerY,
-    });
-
-    if (k + 1 >= this.rawBoard.length || this.rawBoard[k + 1][i][j] === WALL) {
-      return;
-    }
-
-    this.playerF += 1;
-    this.setRawPositionFromXYZ({
-      z: this.playerF,
-      y: this.playerY,
-      x: this.playerX,
-      value: PLAYER,
-    });
-    this.draw();
-
-    if (this.hasReachedGoal()) {
-      this.loadMaze();
-    }
-  }
-
-  goLowerFloor() {
-    const { k, i, j } = this.getRawPosFromXYZPos({
-      z: this.playerF,
-      x: this.playerX,
-      y: this.playerY,
-    });
-
-    if (k < 0 || this.rawBoard[k - 1][i][j] === WALL) {
-      return;
-    }
-
-    this.playerF -= 1;
     this.setRawPositionFromXYZ({
       z: this.playerF,
       y: this.playerY,

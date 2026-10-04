@@ -1,13 +1,13 @@
 import { Board } from "./board.js";
-import { KEYS } from "./constants.js";
+import { DIRECTIONS, KEYS } from "./constants.js";
 
 process.stdin.setRawMode(true);
 process.stdin.resume();
 process.stdin.setEncoding("utf8");
 
-const floors = 2;
+const floors = 5;
 const height = 10;
-const width = 22;
+const width = 20;
 
 const maze = new Board({ floors, height, width });
 maze.loadMaze();
@@ -18,27 +18,27 @@ process.stdin.on("data", (key) => {
   }
 
   if (key === KEYS.UP) {
-    maze.moveUp();
+    maze.move(DIRECTIONS.NORTH);
   }
 
   if (key === KEYS.DOWN) {
-    maze.moveDown();
+    maze.move(DIRECTIONS.SOUTH);
   }
 
   if (key === KEYS.RIGHT) {
-    maze.moveRight();
+    maze.move(DIRECTIONS.RIGHT);
   }
 
   if (key === KEYS.LEFT) {
-    maze.moveLeft();
+    maze.move(DIRECTIONS.LEFT);
   }
 
   if (key === "u") {
-    maze.goUpperFloor();
+    maze.move(DIRECTIONS.UP);
   }
 
   if (key === "d") {
-    maze.goLowerFloor();
+    maze.move(DIRECTIONS.DOWN);
   }
 
   if (key === "\u0003") {
