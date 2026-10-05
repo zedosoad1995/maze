@@ -5,8 +5,8 @@ process.stdin.setRawMode(true);
 process.stdin.resume();
 process.stdin.setEncoding("utf8");
 
-const floors = 5;
-const height = 10;
+const floors = 2;
+const height = 15;
 const width = 20;
 
 const maze = new Board({ floors, height, width });

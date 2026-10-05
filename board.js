@@ -2,7 +2,7 @@ import { DIRECTIONS, KEYS } from "./constants.js";
 import { randFromArray, randInt } from "./helpers.js";
 
 const MAX_SAME_FLOOR_RETRIES = 30;
-const ODDS_TO_ADD_STAIRS = 0.01;
+const ODDS_TO_ADD_STAIRS = 0.02;
 
 const EMPTY = 0;
 const WALL = 1;
@@ -88,32 +88,6 @@ export class Board {
   }
 
   initRandomMaze() {
-    const createWalkableBoard = () => {
-      const walkableBoard = [];
-
-      for (let k = 0; k <= this.getLastIndex("floor"); k += 2) {
-        const matrix = [];
-        for (let i = 1; i <= this.getLastIndex("vertical"); i += 2) {
-          const row = [];
-
-          for (let j = 1; j <= this.getLastIndex("horizontal"); j += 2) {
-            row.push({
-              visited: false,
-              z: k / 2,
-              y: (i - 1) / 2,
-              x: (j - 1) / 2,
-            });
-          }
-
-          matrix.push(row);
-        }
-
-        walkableBoard.push(matrix);
-      }
-
-      return walkableBoard;
-    };
-
     const getValidNeighbours = (walkableBoard, z, y, x) => {
       const upZ = z + 1;
       const downZ = z - 1;
@@ -198,7 +172,7 @@ export class Board {
     this.initFull();
 
     const activeCells = [];
-    const walkableBoard = createWalkableBoard();
+    const walkableBoard = this.createWalkableBoard();
 
     const randZ = randInt(0, this.floors - 1);
     const randY = randInt(0, this.height - 1);
@@ -521,6 +495,134 @@ export class Board {
     this.initRandomMaze();
     this.initPlayerPosition();
     this.initGoalPosition();
+
     this.draw();
+  }
+
+  createWalkableBoard() {
+    const walkableBoard = [];
+
+    for (let k = 0; k <= this.getLastIndex("floor"); k += 2) {
+      const matrix = [];
+      for (let i = 1; i <= this.getLastIndex("vertical"); i += 2) {
+        const row = [];
+
+        for (let j = 1; j <= this.getLastIndex("horizontal"); j += 2) {
+          row.push({
+            visited: false,
+            z: k / 2,
+            y: (i - 1) / 2,
+            x: (j - 1) / 2,
+          });
+        }
+
+        matrix.push(row);
+      }
+
+      walkableBoard.push(matrix);
+    }
+
+    return walkableBoard;
+  }
+
+  findPathBetween2Points({ initPos, targetPos }) {
+    const getValidNeighbours = ({ z, y, x }) => {
+      const upZ = z + 1;
+      const downZ = z - 1;
+
+      const topY = y - 1;
+      const bottomY = y + 1;
+
+      const rightX = x + 1;
+      const leftX = x - 1;
+
+      const validNeighbours = [];
+
+      if (
+        this.canMove({ x, y, z, direction: DIRECTIONS.UP }) &&
+        !walkableBoard[upZ][y][x].visited
+      )
+        validNeighbours.push(walkableBoard[upZ][y][x]);
+
+      if (
+        this.canMove({ x, y, z, direction: DIRECTIONS.DOWN }) &&
+        !walkableBoard[downZ][y][x].visited
+      )
+        validNeighbours.push(walkableBoard[downZ][y][x]);
+
+      if (
+        this.canMove({ x, y, z, direction: DIRECTIONS.NORTH }) &&
+        !walkableBoard[z][topY][x].visited
+      )
+        validNeighbours.push(walkableBoard[z][topY][x]);
+
+      if (
+        this.canMove({ x, y, z, direction: DIRECTIONS.SOUTH }) &&
+        !walkableBoard[z][bottomY][x].visited
+      )
+        validNeighbours.push(walkableBoard[z][bottomY][x]);
+
+      if (
+        this.canMove({ x, y, z, direction: DIRECTIONS.RIGHT }) &&
+        !walkableBoard[z][y][rightX].visited
+      )
+        validNeighbours.push(walkableBoard[z][y][rightX]);
+
+      if (
+        this.canMove({ x, y, z, direction: DIRECTIONS.LEFT }) &&
+        !walkableBoard[z][y][leftX].visited
+      )
+        validNeighbours.push(walkableBoard[z][y][leftX]);
+
+      return validNeighbours;
+    };
+
+    const dfs = (curr) => {
+      if (curr === target) {
+        return true;
+      }
+
+      curr.visited = true;
+
+      const neighbours = getValidNeighbours(curr);
+
+      for (const neighbour of neighbours) {
+        if (!neighbour.visited) {
+          parent.set(neighbour, curr);
+
+          if (dfs(neighbour)) {
+            return true;
+          }
+        }
+      }
+
+      return false;
+    };
+
+    const walkableBoard = this.createWalkableBoard();
+    const target = walkableBoard[targetPos.z][targetPos.y][targetPos.x];
+    const current = walkableBoard[initPos.z][initPos.y][initPos.x];
+
+    const parent = new Map();
+
+    dfs(current);
+
+    const path = [{ x: target.x, y: target.y, z: target.z }];
+    const floorsVisitedOrder = [target.z];
+
+    let curr = target;
+    while (true) {
+      if (curr === current) {
+        break;
+      }
+      curr = parent.get(curr);
+
+      path.unshift({ x: curr.x, y: curr.y, z: curr.z });
+      if (floorsVisitedOrder[0] !== curr.z) {
+        floorsVisitedOrder.unshift(curr.z);
+      }
+    }
+
+    return floorsVisitedOrder.length;
   }
 }
