@@ -4,10 +4,12 @@ import { randFromArray, randInt } from "./helpers.js";
 const MAX_SAME_FLOOR_RETRIES = 30;
 const ODDS_TO_ADD_STAIRS = 0.02;
 
-const EMPTY = 0;
-const WALL = 1;
-const PLAYER = 2;
-const GOAL = 3;
+export const MAZE_VALUES = Object.freeze({
+  EMPTY: 0,
+  WALL: 1,
+  PLAYER: 2,
+  GOAL: 3,
+});
 
 const PLAYER_CHAR = "x";
 const GOAL_CHAR = "o";
@@ -17,8 +19,8 @@ const LADDER_DOWN_CHAR = "d";
 const LADDER_BOTH_CHAR = "b";
 
 const MAZE_OBJECTS = Object.freeze({
-  [PLAYER]: PLAYER_CHAR,
-  [GOAL]: GOAL_CHAR,
+  [MAZE_VALUES.PLAYER]: PLAYER_CHAR,
+  [MAZE_VALUES.GOAL]: GOAL_CHAR,
 });
 
 export class Board {
@@ -53,7 +55,7 @@ export class Board {
           const row = [];
 
           for (let j = 0; j <= this.getLastIndex("horizontal"); j++) {
-            row.push(WALL);
+            row.push(MAZE_VALUES.WALL);
           }
 
           matrix.push(row);
@@ -64,20 +66,20 @@ export class Board {
 
           const isTopOrBottom = i === 0 || i === this.getLastIndex("vertical");
 
-          row.push(WALL);
+          row.push(MAZE_VALUES.WALL);
           for (let j = 1; j <= this.getLastIndex("horizontal") - 1; j++) {
             if (isTopOrBottom) {
-              row.push(WALL);
+              row.push(MAZE_VALUES.WALL);
               continue;
             }
 
             if (i % 2 === 0 || j % 2 === 0) {
-              row.push(WALL);
+              row.push(MAZE_VALUES.WALL);
             } else {
-              row.push(EMPTY);
+              row.push(MAZE_VALUES.EMPTY);
             }
           }
-          row.push(WALL);
+          row.push(MAZE_VALUES.WALL);
 
           matrix.push(row);
         }
@@ -142,31 +144,31 @@ export class Board {
       const { k, i, j } = this.getRawPosFromXYZPos({ z, y, x });
 
       if (isUpZ) {
-        this.rawBoard[k + 1][i][j] = EMPTY;
+        this.rawBoard[k + 1][i][j] = MAZE_VALUES.EMPTY;
         return;
       }
 
       if (isDownZ) {
-        this.rawBoard[k - 1][i][j] = EMPTY;
+        this.rawBoard[k - 1][i][j] = MAZE_VALUES.EMPTY;
         return;
       }
 
       if (isUp) {
-        this.rawBoard[k][i - 1][j] = EMPTY;
+        this.rawBoard[k][i - 1][j] = MAZE_VALUES.EMPTY;
         return;
       }
 
       if (isDown) {
-        this.rawBoard[k][i + 1][j] = EMPTY;
+        this.rawBoard[k][i + 1][j] = MAZE_VALUES.EMPTY;
         return;
       }
 
       if (isRight) {
-        this.rawBoard[k][i][j + 1] = EMPTY;
+        this.rawBoard[k][i][j + 1] = MAZE_VALUES.EMPTY;
         return;
       }
 
-      this.rawBoard[k][i][j - 1] = EMPTY;
+      this.rawBoard[k][i][j - 1] = MAZE_VALUES.EMPTY;
     };
 
     this.initFull();
@@ -276,7 +278,7 @@ export class Board {
   }
 
   getCharFromIndex(k, i, j) {
-    if (this.rawBoard[k][i][j] === EMPTY) {
+    if (this.rawBoard[k][i][j] === MAZE_VALUES.EMPTY) {
       return KEYS.EMPTY_SPACE;
     }
 
@@ -287,21 +289,23 @@ export class Board {
     const bottomIdx = i + 1;
     const leftIdx = j - 1;
 
-    if (topIdx >= 0 && this.rawBoard[k][topIdx][j] === WALL) trbl[0] = 1;
+    if (topIdx >= 0 && this.rawBoard[k][topIdx][j] === MAZE_VALUES.WALL)
+      trbl[0] = 1;
 
     if (
       rightIdx <= this.getLastIndex("horizontal") &&
-      this.rawBoard[k][i][rightIdx] === WALL
+      this.rawBoard[k][i][rightIdx] === MAZE_VALUES.WALL
     )
       trbl[1] = 1;
 
     if (
       bottomIdx <= this.getLastIndex("vertical") &&
-      this.rawBoard[k][bottomIdx][j] === WALL
+      this.rawBoard[k][bottomIdx][j] === MAZE_VALUES.WALL
     )
       trbl[2] = 1;
 
-    if (leftIdx >= 0 && this.rawBoard[k][i][leftIdx] === WALL) trbl[3] = 1;
+    if (leftIdx >= 0 && this.rawBoard[k][i][leftIdx] === MAZE_VALUES.WALL)
+      trbl[3] = 1;
 
     const uchar = {
       "0000": KEYS.EMPTY_SPACE,
@@ -346,13 +350,13 @@ export class Board {
         if (i % 2 === 1 && j % 2 === 1) {
           let ladderChar;
 
-          if (k > 0 && this.rawBoard[k - 1][i][j] === EMPTY) {
+          if (k > 0 && this.rawBoard[k - 1][i][j] === MAZE_VALUES.EMPTY) {
             ladderChar = LADDER_DOWN_CHAR;
           }
 
           if (
             k + 1 < this.rawBoard.length &&
-            this.rawBoard[k + 1][i][j] === EMPTY
+            this.rawBoard[k + 1][i][j] === MAZE_VALUES.EMPTY
           ) {
             ladderChar =
               ladderChar === undefined ? LADDER_UP_CHAR : LADDER_BOTH_CHAR;
@@ -387,7 +391,7 @@ export class Board {
       for (let i = 1; i <= this.getLastIndex("vertical"); i += 2) {
         for (let j = 1; j <= this.getLastIndex("horizontal"); j += 2) {
           if (this.rawBoard[k][i][j] === value) {
-            this.rawBoard[k][i][j] = EMPTY;
+            this.rawBoard[k][i][j] = MAZE_VALUES.EMPTY;
           }
         }
       }
@@ -405,7 +409,7 @@ export class Board {
       z: this.playerF,
       y: this.playerY,
       x: this.playerX,
-      value: PLAYER,
+      value: MAZE_VALUES.PLAYER,
     });
   }
 
@@ -420,7 +424,7 @@ export class Board {
       z: this.goalF,
       y: this.goalY,
       x: this.goalX,
-      value: GOAL,
+      value: MAZE_VALUES.GOAL,
     });
   }
 
@@ -428,19 +432,20 @@ export class Board {
     const { k, i, j } = this.getRawPosFromXYZPos({ z, x, y });
 
     if (direction === DIRECTIONS.NORTH) {
-      return this.rawBoard[k][i - 1][j] !== WALL;
+      return this.rawBoard[k][i - 1][j] !== MAZE_VALUES.WALL;
     } else if (direction === DIRECTIONS.SOUTH) {
-      return this.rawBoard[k][i + 1][j] !== WALL;
+      return this.rawBoard[k][i + 1][j] !== MAZE_VALUES.WALL;
     } else if (direction === DIRECTIONS.RIGHT) {
-      return this.rawBoard[k][i][j + 1] !== WALL;
+      return this.rawBoard[k][i][j + 1] !== MAZE_VALUES.WALL;
     } else if (direction === DIRECTIONS.LEFT) {
-      return this.rawBoard[k][i][j - 1] !== WALL;
+      return this.rawBoard[k][i][j - 1] !== MAZE_VALUES.WALL;
     } else if (direction === DIRECTIONS.UP) {
       return (
-        k + 1 < this.rawBoard.length && this.rawBoard[k + 1][i][j] !== WALL
+        k + 1 < this.rawBoard.length &&
+        this.rawBoard[k + 1][i][j] !== MAZE_VALUES.WALL
       );
     } else if (direction === DIRECTIONS.DOWN) {
-      return k - 1 >= 0 && this.rawBoard[k - 1][i][j] !== WALL;
+      return k - 1 >= 0 && this.rawBoard[k - 1][i][j] !== MAZE_VALUES.WALL;
     }
   }
 
@@ -474,7 +479,7 @@ export class Board {
       z: this.playerF,
       y: this.playerY,
       x: this.playerX,
-      value: PLAYER,
+      value: MAZE_VALUES.PLAYER,
     });
     this.draw();
 

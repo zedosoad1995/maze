@@ -1,47 +1,104 @@
-import { Board } from "./board.js";
-import { DIRECTIONS, KEYS } from "./constants.js";
+import { Board, MAZE_VALUES } from "./board.js";
+import { DIRECTIONS } from "./constants.js";
 
-process.stdin.setRawMode(true);
-process.stdin.resume();
-process.stdin.setEncoding("utf8");
+const PLAYER_SPRITE = "🤠";
+const GOAL_SPRITE = "🪙";
 
-const floors = 2;
-const height = 15;
-const width = 20;
+function drawMaze({ canvas, maze, floor, cellSize, wallThickness }) {
+  const context = canvas.getContext("2d");
+  const rawFloor = maze.rawBoard[floor * 2];
 
-const maze = new Board({ floors, height, width });
-maze.loadMaze();
+  context.clearRect(0, 0, canvas.width, canvas.height);
+  context.fillStyle = "black";
+  context.font = `${cellSize - 6}px sans-serif`;
+  context.textAlign = "center";
+  context.textBaseline = "middle";
 
-process.stdin.on("data", (key) => {
-  if (key === KEYS.EMPTY_SPACE) {
-    maze.loadMaze();
+  for (let row = 0; row < rawFloor.length; row++) {
+    for (let column = 0; column < rawFloor[row].length; column++) {
+      const isCellRow = row % 2 === 1;
+      const isCellColumn = column % 2 === 1;
+
+      const x =
+        Math.floor(column / 2) * (cellSize + wallThickness) +
+        (isCellColumn ? wallThickness : 0);
+      const y =
+        Math.floor(row / 2) * (cellSize + wallThickness) +
+        (isCellRow ? wallThickness : 0);
+
+      const width = isCellColumn ? cellSize : wallThickness;
+      const height = isCellRow ? cellSize : wallThickness;
+
+      const value = rawFloor[row][column];
+
+      if (value === MAZE_VALUES.PLAYER || value === MAZE_VALUES.GOAL) {
+        const sprite =
+          value === MAZE_VALUES.PLAYER ? PLAYER_SPRITE : GOAL_SPRITE;
+        context.fillText(sprite, x + width / 2, y + height / 2);
+        continue;
+      }
+
+      if (value === MAZE_VALUES.WALL) {
+        context.fillRect(x, y, width, height);
+      }
+    }
   }
+}
 
-  if (key === KEYS.UP) {
-    maze.move(DIRECTIONS.NORTH);
-  }
+function init() {
+  const height = 15;
+  const width = 15;
+  const floors = 1;
 
-  if (key === KEYS.DOWN) {
-    maze.move(DIRECTIONS.SOUTH);
-  }
+  const cellSize = 20;
+  const wallThickness = 2;
+  const canvas = document.querySelector("#maze");
 
-  if (key === KEYS.RIGHT) {
-    maze.move(DIRECTIONS.RIGHT);
-  }
+  canvas.width = width * cellSize + (width + 1) * wallThickness;
+  canvas.height = height * cellSize + (height + 1) * wallThickness;
 
-  if (key === KEYS.LEFT) {
-    maze.move(DIRECTIONS.LEFT);
-  }
+  const maze = new Board({ height, width, floors });
+  maze.initRandomMaze();
+  maze.initPlayerPosition();
+  maze.initGoalPosition();
 
-  if (key === "u") {
-    maze.move(DIRECTIONS.UP);
-  }
+  maze.draw = () => {
+    drawMaze({
+      canvas,
+      maze,
+      floor: maze.playerF,
+      cellSize,
+      wallThickness,
+    });
+  };
 
-  if (key === "d") {
-    maze.move(DIRECTIONS.DOWN);
-  }
+  maze.draw();
 
-  if (key === "\u0003") {
-    process.exit();
-  }
-});
+  const directionsByKey = {
+    ArrowUp: DIRECTIONS.NORTH,
+    ArrowDown: DIRECTIONS.SOUTH,
+    ArrowRight: DIRECTIONS.RIGHT,
+    ArrowLeft: DIRECTIONS.LEFT,
+    u: DIRECTIONS.UP,
+    d: DIRECTIONS.DOWN,
+  };
+
+  window.addEventListener("keydown", (event) => {
+    if (event.code === "Space") {
+      event.preventDefault();
+      maze.loadMaze();
+      return;
+    }
+
+    const direction = directionsByKey[event.key];
+
+    if (direction === undefined) {
+      return;
+    }
+
+    event.preventDefault();
+    maze.move(direction);
+  });
+}
+
+init();
