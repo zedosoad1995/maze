@@ -45,13 +45,13 @@ function drawMaze({ canvas, maze, floor, cellSize, wallThickness }) {
       // Draw stairs
       let stairSprite;
 
-      if (k > 0 && maze.rawBoard[k - 1][i][j] === MAZE_VALUES.EMPTY) {
+      if (k > 0 && maze.rawBoard[k - 1][row][column] === MAZE_VALUES.EMPTY) {
         stairSprite = STAIRS_DOWN_SPRITE;
       }
 
       if (
         k + 1 < maze.rawBoard.length &&
-        maze.rawBoard[k + 1][i][j] === MAZE_VALUES.EMPTY
+        maze.rawBoard[k + 1][row][column] === MAZE_VALUES.EMPTY
       ) {
         stairSprite =
           stairSprite === undefined ? STAIRS_UP_SPRITE : STAIRS_BOTH_SPRITE;
