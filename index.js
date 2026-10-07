@@ -70,33 +70,77 @@ function drawMaze({ canvas, maze, floor, cellSize, wallThickness }) {
 }
 
 function init() {
-  const height = 15;
-  const width = 15;
-  const floors = 3;
-
   const cellSize = 20;
   const wallThickness = 2;
   const canvas = document.querySelector("#maze");
+  const dimensionInputs = {
+    floors: document.querySelector("#num-floors"),
+    height: document.querySelector("#height"),
+    width: document.querySelector("#width"),
+  };
+  const dimensions = {
+    floors: 3,
+    height: 15,
+    width: 15,
+  };
+  let maze;
 
-  canvas.width = width * cellSize + (width + 1) * wallThickness;
-  canvas.height = height * cellSize + (height + 1) * wallThickness;
+  const loadMaze = () => {
+    canvas.width =
+      dimensions.width * cellSize + (dimensions.width + 1) * wallThickness;
+    canvas.height =
+      dimensions.height * cellSize + (dimensions.height + 1) * wallThickness;
 
-  const maze = new Board({ height, width, floors });
-  maze.initRandomMaze();
-  maze.initPlayerPosition();
-  maze.initGoalPosition();
+    maze = new Board(dimensions);
+    maze.initRandomMaze();
+    maze.initPlayerPosition();
+    maze.initGoalPosition();
 
-  maze.draw = () => {
-    drawMaze({
-      canvas,
-      maze,
-      floor: maze.playerF,
-      cellSize,
-      wallThickness,
-    });
+    maze.draw = () => {
+      drawMaze({
+        canvas,
+        maze,
+        floor: maze.playerF,
+        cellSize,
+        wallThickness,
+      });
+    };
+
+    maze.draw();
   };
 
-  maze.draw();
+  const commitDimension = (name) => {
+    const input = dimensionInputs[name];
+    const minimum = Number(input.min);
+    const maximum = Number(input.max);
+    const enteredValue = Number(input.value);
+
+    if (input.value === "" || !Number.isFinite(enteredValue)) {
+      input.value = dimensions[name];
+      return;
+    }
+
+    const value = Math.min(
+      maximum,
+      Math.max(minimum, Math.round(enteredValue)),
+    );
+
+    input.value = value;
+
+    if (value === dimensions[name]) {
+      return;
+    }
+
+    dimensions[name] = value;
+    loadMaze();
+  };
+
+  for (const [name, input] of Object.entries(dimensionInputs)) {
+    input.addEventListener("change", () => commitDimension(name));
+    input.addEventListener("blur", () => commitDimension(name));
+  }
+
+  loadMaze();
 
   const directionsByKey = {
     ArrowUp: DIRECTIONS.NORTH,
@@ -108,6 +152,10 @@ function init() {
   };
 
   window.addEventListener("keydown", (event) => {
+    if (event.target instanceof HTMLInputElement) {
+      return;
+    }
+
     if (event.code === "Space") {
       event.preventDefault();
       maze.loadMaze();

@@ -7,7 +7,41 @@
     <link rel="stylesheet" href="index.css" />
   </head>
   <body>
+    <label for="num-floors">Floors</label>
+    <input
+      id="num-floors"
+      name="numFloors"
+      type="number"
+      min="1"
+      max="20"
+      step="1"
+      value="3"
+    />
+
+    <label for="height">Height</label>
+    <input
+      id="height"
+      name="height"
+      type="number"
+      min="2"
+      max="50"
+      step="1"
+      value="15"
+    />
+
+    <label for="width">Width</label>
+    <input
+      id="width"
+      name="width"
+      type="number"
+      min="2"
+      max="50"
+      step="1"
+      value="15"
+    />
+
     <canvas id="maze"></canvas>
+
     <script type="module" src="index.js"></script>
   </body>
 </html>
