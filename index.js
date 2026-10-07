@@ -3,10 +3,14 @@ import { DIRECTIONS } from "./constants.js";
 
 const PLAYER_SPRITE = "🤠";
 const GOAL_SPRITE = "🪙";
+const STAIRS_UP_SPRITE = "⬆️";
+const STAIRS_DOWN_SPRITE = "⬇️";
+const STAIRS_BOTH_SPRITE = "↕️";
 
 function drawMaze({ canvas, maze, floor, cellSize, wallThickness }) {
   const context = canvas.getContext("2d");
-  const rawFloor = maze.rawBoard[floor * 2];
+  const k = floor * 2;
+  const rawFloor = maze.rawBoard[k];
 
   context.clearRect(0, 0, canvas.width, canvas.height);
   context.fillStyle = "black";
@@ -38,6 +42,26 @@ function drawMaze({ canvas, maze, floor, cellSize, wallThickness }) {
         continue;
       }
 
+      // Draw stairs
+      let stairSprite;
+
+      if (k > 0 && maze.rawBoard[k - 1][i][j] === MAZE_VALUES.EMPTY) {
+        stairSprite = STAIRS_DOWN_SPRITE;
+      }
+
+      if (
+        k + 1 < maze.rawBoard.length &&
+        maze.rawBoard[k + 1][i][j] === MAZE_VALUES.EMPTY
+      ) {
+        stairSprite =
+          stairSprite === undefined ? STAIRS_UP_SPRITE : STAIRS_BOTH_SPRITE;
+      }
+
+      if (stairSprite !== undefined) {
+        context.fillText(stairSprite, x + width / 2, y + height / 2);
+        continue;
+      }
+
       if (value === MAZE_VALUES.WALL) {
         context.fillRect(x, y, width, height);
       }
@@ -48,7 +72,7 @@ function drawMaze({ canvas, maze, floor, cellSize, wallThickness }) {
 function init() {
   const height = 15;
   const width = 15;
-  const floors = 1;
+  const floors = 3;
 
   const cellSize = 20;
   const wallThickness = 2;
