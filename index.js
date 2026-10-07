@@ -73,6 +73,7 @@ function init() {
   const cellSize = 20;
   const wallThickness = 2;
   const canvas = document.querySelector("#maze");
+  const currentFloor = document.querySelector("#current-floor");
   const dimensionInputs = {
     floors: document.querySelector("#num-floors"),
     height: document.querySelector("#height"),
@@ -97,6 +98,9 @@ function init() {
     maze.initGoalPosition();
 
     maze.draw = () => {
+      currentFloor.textContent = `Floor ${maze.playerF + 1}`;
+      currentFloor.hidden = maze.floors === 1;
+
       drawMaze({
         canvas,
         maze,
