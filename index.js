@@ -98,7 +98,7 @@ function init() {
     maze.initGoalPosition();
 
     maze.draw = () => {
-      currentFloor.textContent = `Floor ${maze.playerF + 1}`;
+      currentFloor.textContent = `Floor ${maze.playerF + 1} of ${dimensions.floors}`;
       currentFloor.hidden = maze.floors === 1;
 
       drawMaze({
