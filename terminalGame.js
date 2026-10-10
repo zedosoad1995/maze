@@ -18,27 +18,27 @@ process.stdin.on("data", (key) => {
   }
 
   if (key === KEYS.UP) {
-    maze.move(DIRECTIONS.NORTH);
+    maze.moveUntilNextChoice(DIRECTIONS.NORTH);
   }
 
   if (key === KEYS.DOWN) {
-    maze.move(DIRECTIONS.SOUTH);
+    maze.moveUntilNextChoice(DIRECTIONS.SOUTH);
   }
 
   if (key === KEYS.RIGHT) {
-    maze.move(DIRECTIONS.RIGHT);
+    maze.moveUntilNextChoice(DIRECTIONS.RIGHT);
   }
 
   if (key === KEYS.LEFT) {
-    maze.move(DIRECTIONS.LEFT);
+    maze.moveUntilNextChoice(DIRECTIONS.LEFT);
   }
 
   if (key === "u") {
-    maze.move(DIRECTIONS.UP);
+    maze.moveUntilNextChoice(DIRECTIONS.UP);
   }
 
   if (key === "d") {
-    maze.move(DIRECTIONS.DOWN);
+    maze.moveUntilNextChoice(DIRECTIONS.DOWN);
   }
 
   if (key === "\u0003") {

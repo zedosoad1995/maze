@@ -2,7 +2,7 @@ import { DIRECTIONS, KEYS } from "./constants.js";
 import { randFromArray, randInt } from "./helpers.js";
 
 const MAX_SAME_FLOOR_RETRIES = 30;
-const ODDS_TO_ADD_STAIRS = 0.02;
+const ODDS_TO_ADD_STAIRS = 0.01;
 
 export const MAZE_VALUES = Object.freeze({
   EMPTY: 0,
@@ -481,6 +481,82 @@ export class Board {
       x: this.playerX,
       value: MAZE_VALUES.PLAYER,
     });
+    this.draw();
+
+    if (this.hasReachedGoal()) {
+      this.loadMaze();
+    }
+  }
+
+  moveUntilNextChoice(direction) {
+    const oppositeDir = {
+      [DIRECTIONS.DOWN]: DIRECTIONS.UP,
+      [DIRECTIONS.LEFT]: DIRECTIONS.RIGHT,
+      [DIRECTIONS.NORTH]: DIRECTIONS.SOUTH,
+      [DIRECTIONS.RIGHT]: DIRECTIONS.LEFT,
+      [DIRECTIONS.SOUTH]: DIRECTIONS.NORTH,
+      [DIRECTIONS.UP]: DIRECTIONS.DOWN,
+    };
+
+    if (
+      !this.canMove({
+        z: this.playerF,
+        x: this.playerX,
+        y: this.playerY,
+        direction,
+      })
+    ) {
+      return;
+    }
+
+    while (true) {
+      if (direction === DIRECTIONS.NORTH) {
+        this.playerY -= 1;
+      } else if (direction === DIRECTIONS.SOUTH) {
+        this.playerY += 1;
+      } else if (direction === DIRECTIONS.RIGHT) {
+        this.playerX += 1;
+      } else if (direction === DIRECTIONS.LEFT) {
+        this.playerX -= 1;
+      } else if (direction === DIRECTIONS.UP) {
+        this.playerF += 1;
+      } else if (direction === DIRECTIONS.DOWN) {
+        this.playerF -= 1;
+      }
+
+      this.setRawPositionFromXYZ({
+        z: this.playerF,
+        y: this.playerY,
+        x: this.playerX,
+        value: MAZE_VALUES.PLAYER,
+      });
+
+      // All directions to try, except the opposite one (where the player just came from)
+      const candidateNextDirections = Object.values(DIRECTIONS).filter(
+        (d) => d !== oppositeDir[direction],
+      );
+
+      let nextDirections = [];
+      for (const dir of candidateNextDirections) {
+        if (
+          this.canMove({
+            z: this.playerF,
+            x: this.playerX,
+            y: this.playerY,
+            direction: dir,
+          })
+        ) {
+          nextDirections.push(dir);
+        }
+      }
+
+      if (nextDirections.length > 1 || nextDirections.length <= 0) {
+        break;
+      }
+
+      direction = nextDirections[0];
+    }
+
     this.draw();
 
     if (this.hasReachedGoal()) {

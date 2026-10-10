@@ -173,7 +173,7 @@ function init() {
     }
 
     event.preventDefault();
-    maze.move(direction);
+    maze.moveUntilNextChoice(direction);
   });
 }
 
