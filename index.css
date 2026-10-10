@@ -1,0 +1,10 @@
+#current-floor {
+  font-size: larger;
+  font-weight: 600;
+  margin-top: 0px;
+  margin-bottom: 8px;
+}
+
+.maze-config-panel {
+  margin-top: 8px;
+}

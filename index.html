@@ -7,7 +7,11 @@
     <link rel="stylesheet" href="index.css" />
   </head>
   <body>
-    <div>
+    <p id="current-floor" hidden></p>
+
+    <canvas id="maze"></canvas>
+
+    <div class="maze-config-panel">
       <label for="num-floors">Floors</label>
       <input
         id="num-floors"
@@ -41,10 +45,6 @@
         value="15"
       />
     </div>
-
-    <p id="current-floor" hidden></p>
-
-    <canvas id="maze"></canvas>
 
     <script type="module" src="index.js"></script>
   </body>
