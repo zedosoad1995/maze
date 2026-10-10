@@ -93,9 +93,7 @@ function init() {
       dimensions.height * cellSize + (dimensions.height + 1) * wallThickness;
 
     maze = new Board(dimensions);
-    maze.initRandomMaze();
-    maze.initPlayerPosition();
-    maze.initGoalPosition();
+    maze.loadMaze();
 
     maze.draw = () => {
       currentFloor.textContent = `Floor ${maze.playerF + 1} of ${dimensions.floors}`;
@@ -163,6 +161,7 @@ function init() {
     if (event.code === "Space") {
       event.preventDefault();
       maze.loadMaze();
+      maze.draw();
       return;
     }
 
@@ -173,7 +172,14 @@ function init() {
     }
 
     event.preventDefault();
-    maze.moveUntilNextChoice(direction);
+    maze.move(direction);
+    maze.draw();
+
+    if (maze.hasReachedGoal()) {
+      maze.loadMaze();
+      maze.draw();
+      return;
+    }
   });
 }
 

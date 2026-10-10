@@ -481,11 +481,6 @@ export class Board {
       x: this.playerX,
       value: MAZE_VALUES.PLAYER,
     });
-    this.draw();
-
-    if (this.hasReachedGoal()) {
-      this.loadMaze();
-    }
   }
 
   moveUntilNextChoice(direction) {
@@ -532,7 +527,7 @@ export class Board {
       });
 
       if (this.hasReachedGoal()) {
-        this.loadMaze();
+        return;
       }
 
       // All directions to try, except the opposite one (where the player just came from)
@@ -555,13 +550,11 @@ export class Board {
       }
 
       if (nextDirections.length > 1 || nextDirections.length <= 0) {
-        break;
+        return;
       }
 
       direction = nextDirections[0];
     }
-
-    this.draw();
   }
 
   hasReachedGoal() {
@@ -576,8 +569,6 @@ export class Board {
     this.initRandomMaze();
     this.initPlayerPosition();
     this.initGoalPosition();
-
-    this.draw();
   }
 
   createWalkableBoard() {
