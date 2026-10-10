@@ -1,5 +1,6 @@
 import { Board, MAZE_VALUES } from "./board.js";
 import { DIRECTIONS } from "./constants.js";
+import { minMax } from "./helpers.js";
 
 const PLAYER_SPRITE = "🤠";
 const GOAL_SPRITE = "🪙";
@@ -7,7 +8,11 @@ const STAIRS_UP_SPRITE = "⬆️";
 const STAIRS_DOWN_SPRITE = "⬇️";
 const STAIRS_BOTH_SPRITE = "↕️";
 
-function drawMaze({ canvas, maze, floor, cellSize, wallThickness }) {
+const msPerTile = 50;
+const cellSize = 20;
+const wallThickness = 2;
+
+function drawMaze({ canvas, maze, floor, doNotDraw = {} }) {
   const context = canvas.getContext("2d");
   const k = floor * 2;
   const rawFloor = maze.rawBoard[k];
@@ -38,7 +43,10 @@ function drawMaze({ canvas, maze, floor, cellSize, wallThickness }) {
       if (value === MAZE_VALUES.PLAYER || value === MAZE_VALUES.GOAL) {
         const sprite =
           value === MAZE_VALUES.PLAYER ? PLAYER_SPRITE : GOAL_SPRITE;
-        context.fillText(sprite, x + width / 2, y + height / 2);
+
+        if (value === MAZE_VALUES.PLAYER && !doNotDraw.player) {
+          context.fillText(sprite, x + width / 2, y + height / 2);
+        }
         continue;
       }
 
@@ -70,9 +78,8 @@ function drawMaze({ canvas, maze, floor, cellSize, wallThickness }) {
 }
 
 function init() {
-  const cellSize = 20;
-  const wallThickness = 2;
   const canvas = document.querySelector("#maze");
+  const context2D = canvas.getContext("2d");
   const currentFloor = document.querySelector("#current-floor");
   const dimensionInputs = {
     floors: document.querySelector("#num-floors"),
@@ -84,6 +91,7 @@ function init() {
     height: 15,
     width: 15,
   };
+  let floor;
   let maze;
 
   const loadMaze = () => {
@@ -103,8 +111,6 @@ function init() {
         canvas,
         maze,
         floor: maze.playerF,
-        cellSize,
-        wallThickness,
       });
     };
 
@@ -137,6 +143,81 @@ function init() {
     loadMaze();
   };
 
+  let t0;
+  const animateOneTileMovement =
+    ({ initialPosition, finalPosition }) =>
+    () => {
+      const t = performance.now();
+      if (t0 === undefined) {
+        t0 = t;
+      }
+
+      const slopeX = (finalPosition.x - initialPosition.x) / msPerTile;
+      const slopeY = (finalPosition.y - initialPosition.y) / msPerTile;
+
+      const currentX = minMax(initialPosition.x + slopeX * (t - t0), [
+        initialPosition.x,
+        finalPosition.x,
+      ]);
+      const currentY = minMax(initialPosition.y + slopeY * (t - t0), [
+        initialPosition.y,
+        finalPosition.y,
+      ]);
+
+      drawMaze({ canvas, maze, floor, doNotDraw: { player: true } });
+
+      context2D.fillStyle = "black";
+      context2D.font = `${cellSize - 6}px sans-serif`;
+      context2D.textAlign = "center";
+      context2D.textBaseline = "middle";
+      context2D.fillText(
+        PLAYER_SPRITE,
+        currentX + cellSize / 2,
+        currentY + cellSize / 2,
+      );
+
+      if (currentX !== finalPosition.x || currentY !== finalPosition.y) {
+        requestAnimationFrame(
+          animateOneTileMovement({
+            initialPosition,
+            finalPosition,
+            t0,
+          }),
+        );
+      }
+    };
+
+  const move = ({ maze, direction }) => {
+    let x = maze.playerX * (cellSize + wallThickness) + wallThickness;
+    let y = maze.playerY * (cellSize + wallThickness) + wallThickness;
+
+    const initialPosition = {
+      x,
+      y,
+      z: maze.playerF,
+    };
+
+    maze.move(direction);
+
+    x = maze.playerX * (cellSize + wallThickness) + wallThickness;
+    y = maze.playerY * (cellSize + wallThickness) + wallThickness;
+
+    const finalPosition = {
+      x,
+      y,
+      z: maze.playerF,
+    };
+
+    t0 = undefined;
+    requestAnimationFrame(
+      animateOneTileMovement({
+        initialPosition,
+        finalPosition,
+        t0,
+      }),
+    );
+  };
+
   for (const [name, input] of Object.entries(dimensionInputs)) {
     input.addEventListener("change", () => commitDimension(name));
     input.addEventListener("blur", () => commitDimension(name));
@@ -149,8 +230,8 @@ function init() {
     ArrowDown: DIRECTIONS.SOUTH,
     ArrowRight: DIRECTIONS.RIGHT,
     ArrowLeft: DIRECTIONS.LEFT,
-    u: DIRECTIONS.UP,
-    d: DIRECTIONS.DOWN,
+    z: DIRECTIONS.UP,
+    x: DIRECTIONS.DOWN,
   };
 
   window.addEventListener("keydown", (event) => {
@@ -171,8 +252,10 @@ function init() {
       return;
     }
 
+    floor = maze.playerF;
+
     event.preventDefault();
-    maze.move(direction);
+    move({ maze, direction });
     maze.draw();
 
     if (maze.hasReachedGoal()) {
