@@ -531,6 +531,10 @@ export class Board {
         value: MAZE_VALUES.PLAYER,
       });
 
+      if (this.hasReachedGoal()) {
+        this.loadMaze();
+      }
+
       // All directions to try, except the opposite one (where the player just came from)
       const candidateNextDirections = Object.values(DIRECTIONS).filter(
         (d) => d !== oppositeDir[direction],
@@ -558,10 +562,6 @@ export class Board {
     }
 
     this.draw();
-
-    if (this.hasReachedGoal()) {
-      this.loadMaze();
-    }
   }
 
   hasReachedGoal() {
