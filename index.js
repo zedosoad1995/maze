@@ -12,9 +12,9 @@ const msPerTile = 50;
 const cellSize = 20;
 const wallThickness = 2;
 
-function drawMaze({ canvas, maze, floor, doNotDraw = {} }) {
+function drawMaze({ canvas, maze, doNotDraw = {} }) {
   const context = canvas.getContext("2d");
-  const k = floor * 2;
+  const k = maze.playerF * 2;
   const rawFloor = maze.rawBoard[k];
 
   context.clearRect(0, 0, canvas.width, canvas.height);
@@ -40,16 +40,6 @@ function drawMaze({ canvas, maze, floor, doNotDraw = {} }) {
 
       const value = rawFloor[row][column];
 
-      if (value === MAZE_VALUES.PLAYER || value === MAZE_VALUES.GOAL) {
-        const sprite =
-          value === MAZE_VALUES.PLAYER ? PLAYER_SPRITE : GOAL_SPRITE;
-
-        if (value === MAZE_VALUES.PLAYER && !doNotDraw.player) {
-          context.fillText(sprite, x + width / 2, y + height / 2);
-        }
-        continue;
-      }
-
       // Draw stairs
       let stairSprite;
 
@@ -67,6 +57,21 @@ function drawMaze({ canvas, maze, floor, doNotDraw = {} }) {
 
       if (stairSprite !== undefined) {
         context.fillText(stairSprite, x + width / 2, y + height / 2);
+      }
+
+      // Player and Goal
+      if (value === MAZE_VALUES.PLAYER || value === MAZE_VALUES.GOAL) {
+        const sprite =
+          value === MAZE_VALUES.PLAYER ? PLAYER_SPRITE : GOAL_SPRITE;
+
+        if (value === MAZE_VALUES.GOAL) {
+          context.fillText(sprite, x + width / 2, y + height / 2);
+        }
+
+        if (value === MAZE_VALUES.PLAYER && !doNotDraw.player) {
+          context.fillText(sprite, x + width / 2, y + height / 2);
+        }
+
         continue;
       }
 
@@ -91,7 +96,6 @@ function init() {
     height: 15,
     width: 15,
   };
-  let floor;
   let maze;
 
   const loadMaze = () => {
@@ -110,7 +114,6 @@ function init() {
       drawMaze({
         canvas,
         maze,
-        floor: maze.playerF,
       });
     };
 
@@ -164,7 +167,7 @@ function init() {
         finalPosition.y,
       ]);
 
-      drawMaze({ canvas, maze, floor, doNotDraw: { player: true } });
+      drawMaze({ canvas, maze, doNotDraw: { player: true } });
 
       context2D.fillStyle = "black";
       context2D.font = `${cellSize - 6}px sans-serif`;
@@ -181,13 +184,72 @@ function init() {
           animateOneTileMovement({
             initialPosition,
             finalPosition,
-            t0,
           }),
         );
       }
     };
 
-  const move = ({ maze, direction }) => {
+  const animateUntilNextChoice =
+    ({ path }) =>
+    () => {
+      const t = performance.now();
+      if (t0 === undefined) {
+        t0 = t;
+
+        for (let i = 0; i < path.length; i++) {
+          path[i].x = path[i].x * (cellSize + wallThickness) + wallThickness;
+          path[i].y = path[i].y * (cellSize + wallThickness) + wallThickness;
+          path[i].t = t0 + i * msPerTile;
+        }
+      }
+
+      let targetPathIdx = path.findIndex((tile) => t < tile.t);
+      targetPathIdx = targetPathIdx === -1 ? path.length - 1 : targetPathIdx;
+
+      const finalPositionX = path[targetPathIdx].x;
+      const finalPositionY = path[targetPathIdx].y;
+
+      const initialPositionX = path[Math.max(targetPathIdx - 1, 0)].x;
+      const initialPositionY = path[Math.max(targetPathIdx - 1, 0)].y;
+      const initialTime = path[Math.max(targetPathIdx - 1, 0)].t;
+
+      const slopeX = (finalPositionX - initialPositionX) / msPerTile;
+      const slopeY = (finalPositionY - initialPositionY) / msPerTile;
+
+      const currentX = minMax(initialPositionX + slopeX * (t - initialTime), [
+        initialPositionX,
+        finalPositionX,
+      ]);
+      const currentY = minMax(initialPositionY + slopeY * (t - initialTime), [
+        initialPositionY,
+        finalPositionY,
+      ]);
+
+      drawMaze({ canvas, maze, doNotDraw: { player: true } });
+
+      context2D.fillStyle = "black";
+      context2D.font = `${cellSize - 6}px sans-serif`;
+      context2D.textAlign = "center";
+      context2D.textBaseline = "middle";
+      context2D.fillText(
+        PLAYER_SPRITE,
+        currentX + cellSize / 2,
+        currentY + cellSize / 2,
+      );
+
+      if (t < path.at(-1).t) {
+        requestAnimationFrame(
+          animateUntilNextChoice({
+            path,
+          }),
+        );
+      } else if (maze.hasReachedGoal()) {
+        maze.loadMaze();
+        maze.draw();
+      }
+    };
+
+  const moveOneTile = ({ maze, direction }) => {
     let x = maze.playerX * (cellSize + wallThickness) + wallThickness;
     let y = maze.playerY * (cellSize + wallThickness) + wallThickness;
 
@@ -213,7 +275,26 @@ function init() {
       animateOneTileMovement({
         initialPosition,
         finalPosition,
-        t0,
+      }),
+    );
+  };
+
+  const moveUntilNextChoice = ({ maze, direction }) => {
+    const path = maze.moveUntilNextChoice(direction);
+
+    if (!path?.length) {
+      return;
+    }
+
+    if (path[0].z !== path[1].z) {
+      drawMaze({ canvas, maze });
+      return;
+    }
+
+    t0 = undefined;
+    requestAnimationFrame(
+      animateUntilNextChoice({
+        path,
       }),
     );
   };
@@ -252,17 +333,8 @@ function init() {
       return;
     }
 
-    floor = maze.playerF;
-
     event.preventDefault();
-    move({ maze, direction });
-    maze.draw();
-
-    if (maze.hasReachedGoal()) {
-      maze.loadMaze();
-      maze.draw();
-      return;
-    }
+    moveUntilNextChoice({ maze, direction });
   });
 }
 

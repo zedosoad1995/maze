@@ -484,14 +484,22 @@ export class Board {
   }
 
   moveUntilNextChoice(direction) {
+    const path = [];
+
     const oppositeDir = {
-      [DIRECTIONS.DOWN]: DIRECTIONS.UP,
       [DIRECTIONS.LEFT]: DIRECTIONS.RIGHT,
       [DIRECTIONS.NORTH]: DIRECTIONS.SOUTH,
       [DIRECTIONS.RIGHT]: DIRECTIONS.LEFT,
       [DIRECTIONS.SOUTH]: DIRECTIONS.NORTH,
-      [DIRECTIONS.UP]: DIRECTIONS.DOWN,
     };
+
+    const directions2D = [
+      DIRECTIONS.NORTH,
+      DIRECTIONS.SOUTH,
+      DIRECTIONS.RIGHT,
+      DIRECTIONS.LEFT,
+    ];
+    const directionsZ = [DIRECTIONS.UP, DIRECTIONS.DOWN];
 
     if (
       !this.canMove({
@@ -503,6 +511,12 @@ export class Board {
     ) {
       return;
     }
+
+    path.push({
+      z: this.playerF,
+      x: this.playerX,
+      y: this.playerY,
+    });
 
     while (true) {
       if (direction === DIRECTIONS.NORTH) {
@@ -526,12 +540,31 @@ export class Board {
         value: MAZE_VALUES.PLAYER,
       });
 
-      if (this.hasReachedGoal()) {
-        return;
+      path.push({
+        z: this.playerF,
+        x: this.playerX,
+        y: this.playerY,
+      });
+
+      const hasLadder = directionsZ.some((dir) =>
+        this.canMove({
+          z: this.playerF,
+          x: this.playerX,
+          y: this.playerY,
+          direction: dir,
+        }),
+      );
+
+      if (
+        this.hasReachedGoal() ||
+        directionsZ.includes(direction) ||
+        hasLadder
+      ) {
+        return path;
       }
 
       // All directions to try, except the opposite one (where the player just came from)
-      const candidateNextDirections = Object.values(DIRECTIONS).filter(
+      const candidateNextDirections = directions2D.filter(
         (d) => d !== oppositeDir[direction],
       );
 
@@ -550,7 +583,7 @@ export class Board {
       }
 
       if (nextDirections.length > 1 || nextDirections.length <= 0) {
-        return;
+        return path;
       }
 
       direction = nextDirections[0];
