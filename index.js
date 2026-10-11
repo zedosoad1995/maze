@@ -102,12 +102,37 @@ function init() {
     height: document.querySelector("#height"),
     width: document.querySelector("#width"),
   };
+  const touchControlButtons = document.querySelectorAll(
+    ".touch-controls [data-direction]",
+  );
+  const directionsByName = {
+    north: DIRECTIONS.NORTH,
+    south: DIRECTIONS.SOUTH,
+    right: DIRECTIONS.RIGHT,
+    left: DIRECTIONS.LEFT,
+    up: DIRECTIONS.UP,
+    down: DIRECTIONS.DOWN,
+  };
   const dimensions = {
     floors: 3,
     height: 15,
     width: 15,
   };
   let maze;
+
+  const updateTouchControls = () => {
+    for (const button of touchControlButtons) {
+      const direction = directionsByName[button.dataset.direction];
+      button.disabled =
+        isPlayerMoving ||
+        !maze?.canMove({
+          z: maze.playerF,
+          x: maze.playerX,
+          y: maze.playerY,
+          direction,
+        });
+    }
+  };
 
   const loadMaze = () => {
     canvas.width =
@@ -126,6 +151,7 @@ function init() {
         canvas,
         maze,
       });
+      updateTouchControls();
     };
 
     maze.draw();
@@ -217,6 +243,8 @@ function init() {
         if (maze.hasReachedGoal()) {
           maze.loadMaze();
           maze.draw();
+        } else {
+          updateTouchControls();
         }
       }
     };
@@ -226,12 +254,14 @@ function init() {
 
     if (!path?.length) {
       isPlayerMoving = false;
+      updateTouchControls();
       return;
     }
 
     if (path[0].z !== path[1].z) {
       drawMaze({ canvas, maze });
       isPlayerMoving = false;
+      updateTouchControls();
       return;
     }
 
@@ -259,6 +289,22 @@ function init() {
     x: DIRECTIONS.DOWN,
   };
 
+  const movePlayer = (direction) => {
+    if (isPlayerMoving) {
+      return;
+    }
+
+    isPlayerMoving = true;
+    updateTouchControls();
+    moveUntilNextChoice({ maze, direction });
+  };
+
+  for (const button of touchControlButtons) {
+    button.addEventListener("click", () => {
+      movePlayer(directionsByName[button.dataset.direction]);
+    });
+  }
+
   window.addEventListener("keydown", (event) => {
     if (event.target instanceof HTMLInputElement) {
       return;
@@ -279,10 +325,7 @@ function init() {
 
     event.preventDefault();
 
-    if (!isPlayerMoving) {
-      isPlayerMoving = true;
-      moveUntilNextChoice({ maze, direction });
-    }
+    movePlayer(direction);
   });
 }
 

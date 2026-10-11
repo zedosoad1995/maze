@@ -11,6 +11,34 @@
 
     <canvas id="maze"></canvas>
 
+    <div class="keyboard-instructions">
+      <span>Move: ←↑↓→</span><span class="tutorial-separator">|</span
+      ><span>Stairs: Z↑, X↓</span>
+    </div>
+
+    <div class="touch-controls" aria-label="Maze controls">
+      <div class="touch-controls__row">
+        <button type="button" data-direction="north" aria-label="Move up">
+          ↑
+        </button>
+      </div>
+      <div class="touch-controls__row">
+        <button type="button" data-direction="left" aria-label="Move left">
+          ←
+        </button>
+        <button type="button" data-direction="south" aria-label="Move down">
+          ↓
+        </button>
+        <button type="button" data-direction="right" aria-label="Move right">
+          →
+        </button>
+      </div>
+      <div class="touch-controls__row touch-controls__stairs">
+        <button type="button" data-direction="up">⇧ Stairs up</button>
+        <button type="button" data-direction="down">⇩ Stairs down</button>
+      </div>
+    </div>
+
     <div class="maze-config-panel">
       <label for="num-floors">Floors</label>
       <input
