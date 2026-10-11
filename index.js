@@ -8,9 +8,17 @@ const STAIRS_UP_SPRITE = "⬆️";
 const STAIRS_DOWN_SPRITE = "⬇️";
 const STAIRS_BOTH_SPRITE = "↕️";
 
-const msPerTile = 50;
+const msPerTile = 20;
 const cellSize = 20;
 const wallThickness = 2;
+
+let isPlayerMoving = false;
+
+const drawSprite = ({ row, col, sprite, context2D }) => {
+  const x = col * (cellSize + wallThickness) + wallThickness;
+  const y = row * (cellSize + wallThickness) + wallThickness;
+  context2D.fillText(sprite, x + cellSize / 2, y + cellSize / 2);
+};
 
 function drawMaze({ canvas, maze, doNotDraw = {} }) {
   const context = canvas.getContext("2d");
@@ -59,26 +67,29 @@ function drawMaze({ canvas, maze, doNotDraw = {} }) {
         context.fillText(stairSprite, x + width / 2, y + height / 2);
       }
 
-      // Player and Goal
-      if (value === MAZE_VALUES.PLAYER || value === MAZE_VALUES.GOAL) {
-        const sprite =
-          value === MAZE_VALUES.PLAYER ? PLAYER_SPRITE : GOAL_SPRITE;
-
-        if (value === MAZE_VALUES.GOAL) {
-          context.fillText(sprite, x + width / 2, y + height / 2);
-        }
-
-        if (value === MAZE_VALUES.PLAYER && !doNotDraw.player) {
-          context.fillText(sprite, x + width / 2, y + height / 2);
-        }
-
-        continue;
-      }
-
       if (value === MAZE_VALUES.WALL) {
         context.fillRect(x, y, width, height);
       }
     }
+  }
+
+  // Draw Player
+  if (!doNotDraw.player) {
+    drawSprite({
+      row: maze.playerY,
+      col: maze.playerX,
+      sprite: PLAYER_SPRITE,
+      context2D: context,
+    });
+  }
+
+  if (maze.goalF === maze.playerF) {
+    drawSprite({
+      row: maze.goalY,
+      col: maze.goalX,
+      sprite: GOAL_SPRITE,
+      context2D: context,
+    });
   }
 }
 
@@ -147,48 +158,6 @@ function init() {
   };
 
   let t0;
-  const animateOneTileMovement =
-    ({ initialPosition, finalPosition }) =>
-    () => {
-      const t = performance.now();
-      if (t0 === undefined) {
-        t0 = t;
-      }
-
-      const slopeX = (finalPosition.x - initialPosition.x) / msPerTile;
-      const slopeY = (finalPosition.y - initialPosition.y) / msPerTile;
-
-      const currentX = minMax(initialPosition.x + slopeX * (t - t0), [
-        initialPosition.x,
-        finalPosition.x,
-      ]);
-      const currentY = minMax(initialPosition.y + slopeY * (t - t0), [
-        initialPosition.y,
-        finalPosition.y,
-      ]);
-
-      drawMaze({ canvas, maze, doNotDraw: { player: true } });
-
-      context2D.fillStyle = "black";
-      context2D.font = `${cellSize - 6}px sans-serif`;
-      context2D.textAlign = "center";
-      context2D.textBaseline = "middle";
-      context2D.fillText(
-        PLAYER_SPRITE,
-        currentX + cellSize / 2,
-        currentY + cellSize / 2,
-      );
-
-      if (currentX !== finalPosition.x || currentY !== finalPosition.y) {
-        requestAnimationFrame(
-          animateOneTileMovement({
-            initialPosition,
-            finalPosition,
-          }),
-        );
-      }
-    };
-
   const animateUntilNextChoice =
     ({ path }) =>
     () => {
@@ -243,51 +212,26 @@ function init() {
             path,
           }),
         );
-      } else if (maze.hasReachedGoal()) {
-        maze.loadMaze();
-        maze.draw();
+      } else {
+        isPlayerMoving = false;
+        if (maze.hasReachedGoal()) {
+          maze.loadMaze();
+          maze.draw();
+        }
       }
     };
-
-  const moveOneTile = ({ maze, direction }) => {
-    let x = maze.playerX * (cellSize + wallThickness) + wallThickness;
-    let y = maze.playerY * (cellSize + wallThickness) + wallThickness;
-
-    const initialPosition = {
-      x,
-      y,
-      z: maze.playerF,
-    };
-
-    maze.move(direction);
-
-    x = maze.playerX * (cellSize + wallThickness) + wallThickness;
-    y = maze.playerY * (cellSize + wallThickness) + wallThickness;
-
-    const finalPosition = {
-      x,
-      y,
-      z: maze.playerF,
-    };
-
-    t0 = undefined;
-    requestAnimationFrame(
-      animateOneTileMovement({
-        initialPosition,
-        finalPosition,
-      }),
-    );
-  };
 
   const moveUntilNextChoice = ({ maze, direction }) => {
     const path = maze.moveUntilNextChoice(direction);
 
     if (!path?.length) {
+      isPlayerMoving = false;
       return;
     }
 
     if (path[0].z !== path[1].z) {
       drawMaze({ canvas, maze });
+      isPlayerMoving = false;
       return;
     }
 
@@ -334,7 +278,11 @@ function init() {
     }
 
     event.preventDefault();
-    moveUntilNextChoice({ maze, direction });
+
+    if (!isPlayerMoving) {
+      isPlayerMoving = true;
+      moveUntilNextChoice({ maze, direction });
+    }
   });
 }
 
