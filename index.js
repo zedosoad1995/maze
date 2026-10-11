@@ -298,6 +298,7 @@ function init() {
     isPlayerMoving = true;
     updateTouchControls();
     moveUntilNextChoice({ maze, direction });
+    currentFloor.textContent = `Floor ${maze.playerF + 1} of ${dimensions.floors}`;
   };
 
   for (const button of touchControlButtons) {
