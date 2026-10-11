@@ -18,13 +18,13 @@
   display: none;
 }
 
-@media (max-width: 768px), (hover: none) and (pointer: coarse) {
+@media (hover: none) and (pointer: coarse) {
   .keyboard-instructions {
     display: none;
   }
 }
 
-@media (max-width: 768px), (any-pointer: coarse) {
+@media (any-pointer: coarse) {
   body {
     display: flex;
     min-height: calc(100dvh - 16px);
