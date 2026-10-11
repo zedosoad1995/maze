@@ -113,6 +113,7 @@ function init() {
     up: DIRECTIONS.UP,
     down: DIRECTIONS.DOWN,
   };
+
   const dimensions = {
     floors: 3,
     height: 15,
