@@ -327,6 +327,8 @@ function init() {
     } else {
       animationGlobal.player.isAnimating = false;
       if (maze.hasReachedGoal()) {
+        animationGlobal.trail.isAnimating = false;
+        animationGlobal.trail.path = [];
         maze.loadMaze();
         maze.draw();
       } else {
