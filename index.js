@@ -12,7 +12,10 @@ const msPerTile = 20;
 const cellSize = 20;
 const wallThickness = 2;
 
-let isPlayerMoving = false;
+let animationGlobal = {
+  player: {},
+  trail: {},
+};
 
 const drawSprite = ({ row, col, sprite, context2D }) => {
   const x = col * (cellSize + wallThickness) + wallThickness;
@@ -20,12 +23,14 @@ const drawSprite = ({ row, col, sprite, context2D }) => {
   context2D.fillText(sprite, x + cellSize / 2, y + cellSize / 2);
 };
 
-function drawMaze({ canvas, maze, doNotDraw = {} }) {
+function drawMaze({ canvas, maze, doNotDraw = {}, clearCanvas = true }) {
   const context = canvas.getContext("2d");
   const k = maze.playerF * 2;
   const rawFloor = maze.rawBoard[k];
 
-  context.clearRect(0, 0, canvas.width, canvas.height);
+  if (clearCanvas) {
+    context.clearRect(0, 0, canvas.width, canvas.height);
+  }
   context.fillStyle = "black";
   context.font = `${cellSize - 6}px sans-serif`;
   context.textAlign = "center";
@@ -125,7 +130,7 @@ function init() {
     for (const button of touchControlButtons) {
       const direction = directionsByName[button.dataset.direction];
       button.disabled =
-        isPlayerMoving ||
+        animationGlobal.player.isAnimating ||
         !maze?.canMove({
           z: maze.playerF,
           x: maze.playerX,
@@ -184,94 +189,185 @@ function init() {
     loadMaze();
   };
 
-  let t0;
-  const animateUntilNextChoice =
-    ({ path }) =>
-    () => {
-      const t = performance.now();
-      if (t0 === undefined) {
-        t0 = t;
+  const TRAIL_ALIVE_MS = 500;
+  const animateTrail = (t, currPlayerCanvasPosition) => {
+    const firstIndexToKeep = animationGlobal.trail.path.findIndex(
+      ({ tf }) => t < tf + TRAIL_ALIVE_MS,
+    );
 
-        for (let i = 0; i < path.length; i++) {
-          path[i].x = path[i].x * (cellSize + wallThickness) + wallThickness;
-          path[i].y = path[i].y * (cellSize + wallThickness) + wallThickness;
-          path[i].t = t0 + i * msPerTile;
-        }
+    if (firstIndexToKeep === -1) {
+      animationGlobal.trail.path = [];
+      return false;
+    }
+
+    animationGlobal.trail.path =
+      animationGlobal.trail.path.slice(firstIndexToKeep);
+
+    if (!animationGlobal.trail.path.length) {
+      return false;
+    }
+
+    const path = animationGlobal.trail.path;
+
+    let currCellIdx = path.findIndex(({ ti, tf }) => t >= ti && t < tf);
+    if (currCellIdx === -1) {
+      if (t < path[0].ti) {
+        return true;
+      } else {
+        currCellIdx = path.length - 1;
+      }
+    }
+
+    for (let i = 0; i <= currCellIdx; i++) {
+      const isVerticalLine = path[i].yf - path[i].yi !== 0;
+
+      if (i === currCellIdx) {
+        const gradient = context2D.createLinearGradient(
+          path[i].xi,
+          path[i].yi,
+          currPlayerCanvasPosition.x,
+          currPlayerCanvasPosition.y,
+        );
+
+        gradient.addColorStop(
+          0,
+          `rgba(255, 0, 0, ${Math.min(1 - (t - path[i].ti) / TRAIL_ALIVE_MS, 1)})`,
+        );
+        gradient.addColorStop(1, "rgba(255, 0, 0, 1)");
+
+        context2D.fillStyle = gradient;
+        context2D.fillRect(
+          path[i].xi - (isVerticalLine ? 1 : 0),
+          path[i].yi - (!isVerticalLine ? 1 : 0),
+          currPlayerCanvasPosition.x - path[i].xi + (isVerticalLine ? 2 : 0),
+          currPlayerCanvasPosition.y - path[i].yi + (!isVerticalLine ? 2 : 0),
+        );
+
+        continue;
       }
 
-      let targetPathIdx = path.findIndex((tile) => t < tile.t);
-      targetPathIdx = targetPathIdx === -1 ? path.length - 1 : targetPathIdx;
-
-      const finalPositionX = path[targetPathIdx].x;
-      const finalPositionY = path[targetPathIdx].y;
-
-      const initialPositionX = path[Math.max(targetPathIdx - 1, 0)].x;
-      const initialPositionY = path[Math.max(targetPathIdx - 1, 0)].y;
-      const initialTime = path[Math.max(targetPathIdx - 1, 0)].t;
-
-      const slopeX = (finalPositionX - initialPositionX) / msPerTile;
-      const slopeY = (finalPositionY - initialPositionY) / msPerTile;
-
-      const currentX = minMax(initialPositionX + slopeX * (t - initialTime), [
-        initialPositionX,
-        finalPositionX,
-      ]);
-      const currentY = minMax(initialPositionY + slopeY * (t - initialTime), [
-        initialPositionY,
-        finalPositionY,
-      ]);
-
-      drawMaze({ canvas, maze, doNotDraw: { player: true } });
-
-      context2D.fillStyle = "black";
-      context2D.font = `${cellSize - 6}px sans-serif`;
-      context2D.textAlign = "center";
-      context2D.textBaseline = "middle";
-      context2D.fillText(
-        PLAYER_SPRITE,
-        currentX + cellSize / 2,
-        currentY + cellSize / 2,
+      const gradient = context2D.createLinearGradient(
+        path[i].xi - 1,
+        path[i].yi - 1,
+        path[i].xf + 1,
+        path[i].yf + 1,
       );
 
-      if (t < path.at(-1).t) {
-        requestAnimationFrame(
-          animateUntilNextChoice({
-            path,
-          }),
-        );
-      } else {
-        isPlayerMoving = false;
-        if (maze.hasReachedGoal()) {
-          maze.loadMaze();
-          maze.draw();
-        } else {
-          updateTouchControls();
-        }
-      }
-    };
+      gradient.addColorStop(
+        0,
+        `rgba(255, 0, 0, ${Math.min(1 - (t - path[i].ti) / TRAIL_ALIVE_MS, 1)})`,
+      );
+      gradient.addColorStop(
+        1,
+        `rgba(255, 0, 0, ${Math.min(1 - (t - path[i].tf) / TRAIL_ALIVE_MS, 1)})`,
+      );
 
-  const moveUntilNextChoice = ({ maze, direction }) => {
-    const path = maze.moveUntilNextChoice(direction);
-
-    if (!path?.length) {
-      isPlayerMoving = false;
-      updateTouchControls();
-      return;
+      context2D.fillStyle = gradient;
+      context2D.fillRect(
+        path[i].xi - (isVerticalLine ? 1 : 0),
+        path[i].yi - (!isVerticalLine ? 1 : 0),
+        path[i].xf - path[i].xi + (isVerticalLine ? 2 : 0),
+        path[i].yf - path[i].yi + (!isVerticalLine ? 2 : 0),
+      );
     }
 
-    if (path[0].z !== path[1].z) {
-      drawMaze({ canvas, maze });
-      isPlayerMoving = false;
-      updateTouchControls();
-      return;
-    }
+    return true;
+  };
 
-    t0 = undefined;
-    requestAnimationFrame(
-      animateUntilNextChoice({
-        path,
-      }),
+  const calculatePlayerCanvasPositionWhenMoving = (t) => {
+    let targetPathIdx = animationGlobal.player.path.findIndex(
+      (tile) => t < tile.t,
     );
+    targetPathIdx =
+      targetPathIdx === -1
+        ? animationGlobal.player.path.length - 1
+        : targetPathIdx;
+
+    const finalPositionX = animationGlobal.player.path[targetPathIdx].x;
+    const finalPositionY = animationGlobal.player.path[targetPathIdx].y;
+
+    const initialPositionX =
+      animationGlobal.player.path[Math.max(targetPathIdx - 1, 0)].x;
+    const initialPositionY =
+      animationGlobal.player.path[Math.max(targetPathIdx - 1, 0)].y;
+    const initialTime =
+      animationGlobal.player.path[Math.max(targetPathIdx - 1, 0)].t;
+
+    const slopeX = (finalPositionX - initialPositionX) / msPerTile;
+    const slopeY = (finalPositionY - initialPositionY) / msPerTile;
+
+    const currentX = minMax(initialPositionX + slopeX * (t - initialTime), [
+      initialPositionX,
+      finalPositionX,
+    ]);
+    const currentY = minMax(initialPositionY + slopeY * (t - initialTime), [
+      initialPositionY,
+      finalPositionY,
+    ]);
+
+    return {
+      x: currentX,
+      y: currentY,
+    };
+  };
+
+  const animatePlayerMovement = (t, currPlayerCanvasPosition) => {
+    context2D.fillStyle = "black";
+    context2D.font = `${cellSize - 6}px sans-serif`;
+    context2D.textAlign = "center";
+    context2D.textBaseline = "middle";
+    context2D.fillText(
+      PLAYER_SPRITE,
+      currPlayerCanvasPosition.x,
+      currPlayerCanvasPosition.y,
+    );
+
+    if (t < animationGlobal.player.path.at(-1).t) {
+      return true;
+    } else {
+      animationGlobal.player.isAnimating = false;
+      if (maze.hasReachedGoal()) {
+        maze.loadMaze();
+        maze.draw();
+      } else {
+        updateTouchControls();
+      }
+
+      return false;
+    }
+  };
+
+  const animate = () => {
+    const t = performance.now();
+
+    const currPlayerCanvasPosition = calculatePlayerCanvasPositionWhenMoving(t);
+
+    context2D.clearRect(0, 0, canvas.width, canvas.height);
+
+    if (
+      animationGlobal.trail.isAnimating &&
+      !animateTrail(t, currPlayerCanvasPosition)
+    ) {
+      animationGlobal.trail.isAnimating = false;
+    }
+
+    drawMaze({
+      canvas,
+      maze,
+      doNotDraw: { player: animationGlobal.player.isAnimating },
+      clearCanvas: false,
+    });
+
+    if (
+      animationGlobal.player.isAnimating &&
+      !animatePlayerMovement(t, currPlayerCanvasPosition)
+    ) {
+      animationGlobal.player.isAnimating = false;
+    }
+
+    if (Object.values(animationGlobal).some(({ isAnimating }) => isAnimating)) {
+      requestAnimationFrame(animate);
+    }
   };
 
   for (const [name, input] of Object.entries(dimensionInputs)) {
@@ -291,13 +387,67 @@ function init() {
   };
 
   const movePlayer = (direction) => {
-    if (isPlayerMoving) {
+    if (animationGlobal.player.isAnimating) {
       return;
     }
 
-    isPlayerMoving = true;
+    const path = maze.moveUntilNextChoice(direction);
+
+    const t = performance.now();
+    console.log(t, "llll");
+
+    // Convert to player position on canvas
+    for (let i = 0; i < path?.length ?? 0; i++) {
+      path[i].x =
+        path[i].x * (cellSize + wallThickness) + wallThickness + cellSize / 2;
+      path[i].y =
+        path[i].y * (cellSize + wallThickness) + wallThickness + cellSize / 2;
+      path[i].t = t + i * msPerTile;
+    }
+
+    const trailPath = [];
+    for (let i = 0; i < (path?.length ?? 0) - 1; i++) {
+      trailPath.push({
+        xi: path[i].x,
+        xf: path[i + 1].x,
+        yi: path[i].y,
+        yf: path[i + 1].y,
+        ti: path[i].t,
+        tf: path[i + 1].t,
+      });
+    }
+
+    if (!path?.length) {
+      animationGlobal.player.isAnimating = false;
+      updateTouchControls();
+      return;
+    }
+
+    if (path[0].z !== path[1].z) {
+      drawMaze({ canvas, maze });
+      animationGlobal.player.isAnimating = false;
+      updateTouchControls();
+      return;
+    }
+
+    animationGlobal.player.path = path;
+    animationGlobal.trail.path = [
+      ...(animationGlobal.trail.path ?? []),
+      ...trailPath,
+    ];
+
+    const isAnimationRunning = Object.values(animationGlobal).some(
+      ({ isAnimating }) => isAnimating,
+    );
+
+    animationGlobal.player.isAnimating = true;
+    animationGlobal.trail.isAnimating = true;
     updateTouchControls();
-    moveUntilNextChoice({ maze, direction });
+
+    if (!isAnimationRunning) {
+      requestAnimationFrame(animate);
+    }
+
     currentFloor.textContent = `Floor ${maze.playerF + 1} of ${dimensions.floors}`;
   };
 
