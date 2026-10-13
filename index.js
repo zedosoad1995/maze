@@ -10,7 +10,7 @@ const STAIRS_BOTH_SPRITE = "↕️";
 
 const msPerTile = 20;
 const cellSize = 20;
-const wallThickness = 2;
+const wallThickness = 10;
 
 let animationGlobal = {
   player: {},
@@ -122,7 +122,7 @@ function init() {
   const dimensions = {
     floors: 3,
     height: 15,
-    width: 15,
+    width: 12,
   };
   let maze;
 
@@ -396,7 +396,6 @@ function init() {
     const path = maze.moveUntilNextChoice(direction);
 
     const t = performance.now();
-    console.log(t, "llll");
 
     // Convert to player position on canvas
     for (let i = 0; i < path?.length ?? 0; i++) {
