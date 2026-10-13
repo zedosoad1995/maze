@@ -121,7 +121,7 @@ function init() {
 
   const dimensions = {
     floors: 3,
-    height: 15,
+    height: 12,
     width: 12,
   };
   let maze;
